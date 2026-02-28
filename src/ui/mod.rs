@@ -45,22 +45,19 @@ impl UI {
     }
 
     fn render_result(&self, frame: &mut Frame, app: &App) {
-        let results_option = app.results();
-
-        let text = match results_option {
-            Some(results) => {
-                format!(
-                    "WPM: {} | {}/{}/{} | Accuracy: {} | Seconds: {} \n {:?}",
-                    results.wpm,
-                    results.typed,
-                    results.misstyped,
-                    results.extra,
-                    results.accuracy,
-                    results.time_in_seconds,
-                    "Placeholder"
-                )
-            }
-            None => "Error loading your results".to_string(),
+        let text = if let Some(results) = app.results() {
+            format!(
+                "WPM: {} | {}/{}/{} | Accuracy: {} | Seconds: {} \n {:?}",
+                results.wpm,
+                results.typed,
+                results.misstyped,
+                results.extra,
+                results.accuracy,
+                results.time_in_seconds,
+                "Placeholder"
+            )
+        } else {
+            "Error loading your results".to_string()
         };
 
         let text_paragraph = Paragraph::new(text)
