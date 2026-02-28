@@ -56,7 +56,7 @@ fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
 
 fn teardown_terminal() -> Result<()> {
     let mut stdout = io::stdout();
-    // crossterm::terminal::disable_raw_mode()?;
+    crossterm::terminal::disable_raw_mode()?;
     crossterm::execute!(stdout, LeaveAlternateScreen, DisableMouseCapture)?;
     Ok(())
 }
