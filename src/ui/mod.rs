@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, Padding, Paragraph, Wrap},
 };
 
-use crate::{HELP, PARAGRAPH, app::App};
+use crate::{HELP, app::App};
 
 struct AppLayout {
     top: Rect,
@@ -70,7 +70,7 @@ impl UI {
         self.render_footer(frame, app);
     }
 
-    pub fn update(&self, frame: &mut Frame, app: &mut App) {
+    pub fn update(&self, frame: &mut Frame, app: &mut App, text: &str) {
         if app.stats.is_some() {
             self.render_result(frame, app);
             return;
@@ -80,39 +80,45 @@ impl UI {
         let mut typed_iter = app.current_session.typed_text.chars();
         let mut lines = Vec::<Line>::new();
 
-        for expected in PARAGRAPH.chars() {
+        for expected in text.chars() {
             match expected {
-                '\n' => {
-                    lines.push(Line::from(spans));
-                    spans = Vec::new();
-                }
                 _ => {
-                    let span = match typed_iter.next() {
+                    let (span_text, style): (String, Style) = match typed_iter.next() {
                         Some(actual) => {
                             if expected == actual {
-                                Span::styled(
-                                    expected.to_string(),
-                                    Style::default().fg(Color::Green),
-                                )
+                                if actual == '\n' {
+                                    ("\\n".to_string(), Style::default().fg(Color::Green))
+                                } else {
+                                    (expected.to_string(), Style::default().fg(Color::Green))
+                                }
                             } else {
-                                let is_whitespace = expected == ' ';
-
-                                if is_whitespace {
-                                    Span::styled(
+                                if expected == ' ' {
+                                    (
                                         ' '.to_string(),
                                         Style::default().bg(Color::Red).fg(Color::White),
                                     )
-                                } else {
-                                    Span::styled(
-                                        expected.to_string(),
-                                        Style::default().fg(Color::Red),
+                                } else if expected == '\n' {
+                                    (
+                                        "\\n".to_string(),
+                                        Style::default().bg(Color::Red).fg(Color::White),
                                     )
+                                } else {
+                                    (expected.to_string(), Style::default().fg(Color::Red))
                                 }
                             }
                         }
-                        None => Span::raw(expected.to_string()),
+                        None => (expected.to_string(), Style::default()),
                     };
-                    spans.push(span);
+
+                    let span = Span::styled(span_text, style);
+
+                    if expected == '\n' {
+                        spans.push(span);
+                        lines.push(Line::from(spans));
+                        spans = Vec::new();
+                    } else {
+                        spans.push(span);
+                    }
                 }
             }
         }
@@ -123,7 +129,6 @@ impl UI {
 
         let text = Text::from(lines);
         let text_paragraph = Paragraph::new(text)
-            .centered()
             .block(Block::default().padding(Padding::new(16, 16, 16, 16)))
             .style(Style::new().add_modifier(Modifier::BOLD))
             .wrap(Wrap { trim: true });

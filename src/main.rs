@@ -1,11 +1,14 @@
 mod app;
+mod args;
 mod input;
 mod ui;
 
 use app::App;
+use args::parseArgs;
 use input::handle_events;
 use ui::UI;
 
+use std::fs;
 use std::io::{self, Result, Stdout};
 
 use crossterm::{
@@ -14,19 +17,24 @@ use crossterm::{
 };
 use ratatui::{DefaultTerminal, Terminal, prelude::CrosstermBackend};
 
-pub const PARAGRAPH: &str = "Lorem ipsum dolor sit amet";
-
-pub const HELP: &str = "Something something";
-
 fn main() -> Result<()> {
+    let options = parseArgs();
+
+    let text = if let Ok(file) = fs::read_to_string("") {
+        file.chars().take(30).collect()
+    } else {
+        DEFAULT_TEXT.to_string()
+    };
+    return Ok(());
+
     let mut terminal = setup_terminal()?;
-    let mut app = App::new();
-    run(&mut terminal, &mut app)?;
+    let mut app = App::new(text.as_str());
+    run(&mut terminal, &mut app, text.as_str())?;
     teardown_terminal()?;
     Ok(())
 }
 
-fn run(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<()> {
+fn run(terminal: &mut DefaultTerminal, app: &mut App, text: &str) -> std::io::Result<()> {
     let terminal_size = terminal.size()?;
     let ui = UI::new(terminal_size.width, terminal_size.height);
 
@@ -38,7 +46,7 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> std::io::Result<()> {
         let event_result = handle_events()?;
         app.update(&event_result);
 
-        terminal.draw(|f| ui.update(f, app))?;
+        terminal.draw(|f| ui.update(f, app, text))?;
     }
 }
 

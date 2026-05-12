@@ -68,6 +68,7 @@ fn handle_key_event(key_event: KeyEvent) -> EventResult {
             }
         }
         KeyCode::Enter => {
+            event_result.action = Action::Insert;
             event_result.token = Some(Token::NewLine);
         }
         KeyCode::Backspace => event_result.action = Action::Delete,

@@ -1,7 +1,4 @@
-use crate::{
-    PARAGRAPH,
-    input::{Action, EventResult},
-};
+use crate::input::{Action, EventResult};
 use std::time::Instant;
 
 #[derive(Default, Copy, Clone)]
@@ -24,15 +21,17 @@ pub struct TypingSession {
     typed_raw: u16,
 }
 
-pub struct App {
+pub struct App<'a> {
+    text: &'a str,
     pub should_quit: bool,
     pub stats: Option<Stats>,
     pub current_session: TypingSession,
 }
 
-impl App {
-    pub fn new() -> App {
+impl App<'_> {
+    pub fn new(text: &str) -> App {
         App {
+            text,
             should_quit: false,
             stats: None,
             current_session: TypingSession::default(),
@@ -40,7 +39,7 @@ impl App {
     }
 
     pub fn reset(&mut self) {
-        self.current_session.typed_text.clear();
+        self.current_session = TypingSession::default();
         self.should_quit = false;
         self.stats = None;
     }
@@ -63,11 +62,11 @@ impl App {
         let mut current_word_correct_typed_count = 0;
         let mut word_has_error = false;
 
-        for expected in PARAGRAPH.chars() {
+        for expected in self.text.chars() {
             if let Some(actual) = typed_iter.next() {
                 if expected == actual {
                     stats.correct += 1;
-                    if expected.is_whitespace() {
+                    if expected.is_whitespace() || expected == '\n' {
                         stats.typed += 1;
                         if !word_has_error {
                             stats.typed += current_word_correct_typed_count;
@@ -80,7 +79,7 @@ impl App {
                         }
                     }
                 } else {
-                    if expected.is_whitespace() {
+                    if expected.is_whitespace() || expected == '\n' {
                         stats.extra += 1;
                         word_has_error = false;
                     } else {
@@ -155,7 +154,7 @@ impl App {
             return;
         }
 
-        if typed_len == PARAGRAPH.len() {
+        if typed_len == self.text.len() {
             self.current_session.finished = Some(Instant::now());
             self.update_results();
         }
