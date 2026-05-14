@@ -29,7 +29,7 @@ pub struct App<'a> {
 }
 
 impl App<'_> {
-    pub fn new(text: &str) -> App {
+    pub fn new(text: &str) -> App<'_> {
         App {
             text,
             should_quit: false,

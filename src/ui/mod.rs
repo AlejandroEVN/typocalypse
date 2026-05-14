@@ -6,7 +6,9 @@ use ratatui::{
     widgets::{Block, Padding, Paragraph, Wrap},
 };
 
-use crate::{HELP, app::App};
+use crate::app::App;
+
+const HELP: &str = "Press something";
 
 struct AppLayout {
     top: Rect,

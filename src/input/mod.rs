@@ -59,6 +59,14 @@ fn handle_key_event(key_event: KeyEvent) -> EventResult {
                 event_result.token = Some(Token::Char('q'));
             }
         }
+        KeyCode::Char('c') => {
+            if key_event.modifiers.contains(KeyModifiers::CONTROL) {
+                event_result.action = Action::Quit;
+            } else {
+                event_result.action = Action::Insert;
+                event_result.token = Some(Token::Char('q'));
+            }
+        }
         KeyCode::Char('r') => {
             if key_event.modifiers.contains(KeyModifiers::ALT) {
                 event_result.action = Action::Restart;
