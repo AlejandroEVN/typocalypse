@@ -10,26 +10,11 @@ use crate::app::App;
 
 const HELP: &str = "Press something";
 
-struct AppLayout {
-    top: Rect,
-    bottom: Rect,
-}
-
-pub struct UI {
-    layout: AppLayout,
-}
+pub struct UI;
 
 impl UI {
-    pub fn new(width: u16, height: u16) -> UI {
-        let area = Rect::new(0, 0, width, height);
-        let (areas, _) = Layout::vertical([Constraint::Percentage(95), Constraint::Percentage(5)])
-            .split_with_spacers(area);
-        let layout = AppLayout {
-            top: areas[0],
-            bottom: areas[1],
-        };
-
-        UI { layout }
+    pub fn new() -> Self {
+        UI
     }
 
     fn render_footer(&self, frame: &mut Frame, app: &App) {
@@ -43,7 +28,8 @@ impl UI {
 
         let footer = Paragraph::new(footer_content);
 
-        frame.render_widget(footer, self.layout.bottom);
+        let (_, bottom) = Self::layout(frame.area());
+        frame.render_widget(footer, bottom);
     }
 
     fn render_result(&self, frame: &mut Frame, app: &App) {
@@ -68,7 +54,8 @@ impl UI {
             .style(Style::new().add_modifier(Modifier::BOLD))
             .wrap(ratatui::widgets::Wrap { trim: true });
 
-        frame.render_widget(text_paragraph, self.layout.top);
+        let (top, _) = Self::layout(frame.area());
+        frame.render_widget(text_paragraph, top);
         self.render_footer(frame, app);
     }
 
@@ -135,7 +122,15 @@ impl UI {
             .style(Style::new().add_modifier(Modifier::BOLD))
             .wrap(Wrap { trim: true });
 
-        frame.render_widget(text_paragraph, self.layout.top);
+        let (top, _) = Self::layout(frame.area());
+        frame.render_widget(text_paragraph, top);
         self.render_footer(frame, app);
+    }
+
+    fn layout(area: Rect) -> (Rect, Rect) {
+        let areas =
+            Layout::vertical([Constraint::Percentage(95), Constraint::Percentage(5)]).split(area);
+
+        (areas[0], areas[1])
     }
 }

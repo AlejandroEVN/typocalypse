@@ -9,8 +9,7 @@ use crossterm::{
 use ratatui::{DefaultTerminal, Terminal, prelude::CrosstermBackend};
 
 pub fn run(terminal: &mut DefaultTerminal, app: &mut App, text: &str) -> std::io::Result<()> {
-    let terminal_size = terminal.size()?;
-    let ui = UI::new(terminal_size.width, terminal_size.height);
+    let ui = UI::new();
 
     loop {
         if app.should_quit {
