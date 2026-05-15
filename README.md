@@ -24,7 +24,7 @@ cargo install --path .
 
 ## Usage
 
-Usage: `typocalypse --help` to display usage
+`typocalypse --help` to display usage
 
 ### Examples
 
