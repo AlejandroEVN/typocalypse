@@ -25,11 +25,17 @@ cargo install --path .
 ## Usage
 
 Usage: typocalypse [OPTIONS]
+
 Options:
+
 -t <TEXT>    Raw text to practice with
+
 -l <LIMIT>   Word limit (default: 30)
+
 -p <PATH>    File path to read from
+
 -r           Erase all historic test data
+
 --help       Print this help message
 
 ### Examples
