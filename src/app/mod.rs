@@ -1,7 +1,10 @@
-use crate::input::{Action, EventResult};
+use crate::{
+    db::DB,
+    input::{Action, EventResult},
+};
 use std::time::Instant;
 
-#[derive(Default, Copy, Clone)]
+#[derive(Default, Copy, Clone, Debug)]
 pub struct Stats {
     pub correct: u16,
     pub incorrect: u16,
@@ -10,7 +13,14 @@ pub struct Stats {
     pub extra: u16,
     pub accuracy: f32,
     pub wpm: f32,
-    pub time_in_seconds: u64,
+    pub time_in_seconds: i64,
+}
+
+#[derive(Default, Clone, Debug)]
+pub struct Totals {
+    pub avg_stats: Stats,
+    pub count: u16,
+    pub all_results: Option<Vec<Stats>>,
 }
 
 #[derive(Default, Debug)]
@@ -21,20 +31,34 @@ pub struct TypingSession {
     typed_raw: u16,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Menu {
+    Home,
+    Stats,
+}
+
 pub struct App<'a> {
     text: &'a str,
+    db: DB,
     pub should_quit: bool,
     pub stats: Option<Stats>,
     pub current_session: TypingSession,
+    pub selected_menu: Menu,
+    pub historic: Totals,
+    calculate_historic: bool,
 }
 
 impl App<'_> {
-    pub fn new(text: &str) -> App<'_> {
+    pub fn new(db: DB, text: &str) -> App<'_> {
         App {
+            db,
             text,
             should_quit: false,
             stats: None,
             current_session: TypingSession::default(),
+            selected_menu: Menu::Home,
+            calculate_historic: true,
+            historic: Totals::default(),
         }
     }
 
@@ -44,8 +68,19 @@ impl App<'_> {
         self.stats = None;
     }
 
-    pub fn results(&self) -> &Option<Stats> {
-        &self.stats
+    pub fn results(&self) -> Totals {
+        let stats = if let Some(current_stats) = self.stats {
+            current_stats
+        } else {
+            eprintln!("Error loading your results");
+            std::process::exit(1);
+        };
+
+        Totals {
+            avg_stats: stats,
+            count: 1,
+            all_results: None,
+        }
     }
 
     pub fn update_results(&mut self) {
@@ -56,7 +91,7 @@ impl App<'_> {
         self.stats = self.calculate_result();
     }
 
-    fn calculate_result(&self) -> Option<Stats> {
+    fn calculate_result(&mut self) -> Option<Stats> {
         let mut typed_iter = self.current_session.typed_text.chars();
         let mut stats = Stats::default();
         let mut current_word_correct_typed_count = 0;
@@ -115,12 +150,59 @@ impl App<'_> {
         stats.incorrect = incorrect;
         stats.wpm = wpm;
         stats.accuracy = accuracy;
-        stats.time_in_seconds = time_in_seconds;
+        stats.time_in_seconds = time_in_seconds as i64;
+
+        let _ = self.db.insert_results(stats);
+        self.calculate_historic = true;
 
         Some(stats)
     }
 
-    pub fn update(&mut self, event_result: &EventResult) -> () {
+    pub fn get_historic_stats(&mut self) -> &Totals {
+        if !self.calculate_historic {
+            return &self.historic;
+        };
+
+        let historic_results = self.db.get_results();
+        let count = historic_results.len() as u16;
+
+        if count == 0 {
+            return &self.historic;
+        }
+
+        let stats_sum = historic_results
+            .iter()
+            .fold(Stats::default(), |acc, e| Stats {
+                correct: acc.correct + e.correct,
+                incorrect: acc.incorrect + e.incorrect,
+                typed: acc.typed + e.typed,
+                misstyped: acc.misstyped + e.misstyped,
+                extra: acc.extra + e.extra,
+                accuracy: acc.accuracy + e.accuracy,
+                wpm: acc.wpm + e.wpm,
+                time_in_seconds: acc.time_in_seconds + e.time_in_seconds,
+            });
+
+        self.historic = Totals {
+            avg_stats: Stats {
+                correct: stats_sum.correct / count,
+                incorrect: stats_sum.incorrect / count,
+                typed: stats_sum.typed / count,
+                misstyped: stats_sum.misstyped / count,
+                extra: stats_sum.extra / count,
+                accuracy: stats_sum.accuracy / count as f32,
+                wpm: stats_sum.wpm / count as f32,
+                time_in_seconds: stats_sum.time_in_seconds / count as i64,
+            },
+            all_results: Some(historic_results),
+            count,
+        };
+
+        self.calculate_historic = false;
+        &self.historic
+    }
+
+    fn handle_event_result(&mut self, event_result: &EventResult) {
         match event_result.action {
             Action::Quit => self.should_quit = true,
             Action::Insert => {
@@ -129,7 +211,21 @@ impl App<'_> {
                     self.current_session.typed_raw += 1;
                 }
             }
-            Action::Restart => self.reset(),
+            Action::SelectMenu => {
+                if let Some(selected_menu) = &event_result.selected_menu {
+                    self.selected_menu = selected_menu.clone();
+                } else {
+                    self.selected_menu = Menu::Home;
+                }
+            }
+            Action::Restart => {
+                if let Some(selected_menu) = &event_result.selected_menu {
+                    self.selected_menu = selected_menu.clone();
+                } else {
+                    self.selected_menu = Menu::Home;
+                };
+                self.reset();
+            }
             Action::None => (),
             Action::Delete => {
                 let new_len = self
@@ -143,6 +239,10 @@ impl App<'_> {
                 self.current_session.typed_text.truncate(new_len);
             }
         }
+    }
+
+    pub fn update(&mut self, event_result: &EventResult) -> () {
+        self.handle_event_result(event_result);
 
         if self.stats.is_some() {
             return;
