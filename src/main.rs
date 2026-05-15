@@ -22,6 +22,10 @@ fn main() -> Result<()> {
 
     let options = parse_args();
 
+    if options.should_reset {
+        let _ = db.reset_results();
+    }
+
     let text = match &options.path {
         Some(path) => match fs::read_to_string(path) {
             Ok(file) => file.chars().take(options.limit).collect(),

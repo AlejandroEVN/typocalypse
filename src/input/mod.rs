@@ -71,7 +71,7 @@ fn handle_key_event(key_event: KeyEvent) -> EventResult {
                 event_result.selected_menu = Some(Menu::Stats);
             } else {
                 event_result.action = Action::Insert;
-                event_result.token = Some(Token::Char('q'));
+                event_result.token = Some(Token::Char('s'));
             }
         }
         KeyCode::Char('c') => {
@@ -79,7 +79,7 @@ fn handle_key_event(key_event: KeyEvent) -> EventResult {
                 event_result.action = Action::Quit;
             } else {
                 event_result.action = Action::Insert;
-                event_result.token = Some(Token::Char('q'));
+                event_result.token = Some(Token::Char('c'));
             }
         }
         KeyCode::Char('r') => {

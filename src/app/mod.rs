@@ -145,7 +145,7 @@ impl App<'_> {
             time_in_seconds = 1;
         }
 
-        let wpm = (stats.typed / 5) as f32 * (60 / time_in_seconds) as f32;
+        let wpm = (stats.typed as f32 / 5.0) * (60.0 / time_in_seconds as f32);
 
         stats.incorrect = incorrect;
         stats.wpm = wpm;
@@ -167,6 +167,7 @@ impl App<'_> {
         let count = historic_results.len() as u16;
 
         if count == 0 {
+            self.calculate_historic = false;
             return &self.historic;
         }
 
@@ -254,13 +255,13 @@ impl App<'_> {
             return;
         }
 
+        if self.current_session.started.is_none() {
+            self.current_session.started = Some(Instant::now());
+        }
+
         if typed_len == self.text.len() {
             self.current_session.finished = Some(Instant::now());
             self.update_results();
-        }
-
-        if self.current_session.started.is_none() {
-            self.current_session.started = Some(Instant::now());
         }
     }
 }

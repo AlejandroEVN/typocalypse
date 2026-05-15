@@ -39,8 +39,7 @@ impl DB {
     }
 
     pub fn insert_results(&self, results: Stats) -> rusqlite::Result<()> {
-        let _ = self
-            .conn
+        self.conn
             .execute(
                 format!(
                     "INSERT INTO {} (
@@ -74,8 +73,7 @@ impl DB {
     }
 
     pub fn reset_results(&self) -> rusqlite::Result<()> {
-        let _ = self
-            .conn
+        self.conn
             .execute(format!("DELETE FROM {};", TABLE_NAME).as_str(), ())
             .expect("error: clearing stats");
 
@@ -85,20 +83,36 @@ impl DB {
     pub fn get_results(&self) -> Vec<Stats> {
         let mut statement = self
             .conn
-            .prepare(format!("SELECT * FROM {};", TABLE_NAME).as_str())
+            .prepare(
+                format!(
+                    "
+                SELECT 
+                    wpm, 
+                    accuracy, 
+                    typed, 
+                    misstyped, 
+                    extra, 
+                    duration, 
+                    correct, 
+                    incorrect 
+                FROM {};",
+                    TABLE_NAME
+                )
+                .as_str(),
+            )
             .expect("error: getting historic results");
 
         let results = statement
             .query_map([], |row| {
                 Ok(Stats {
-                    wpm: row.get(1)?,
-                    accuracy: row.get(2)?,
-                    typed: row.get(3)?,
-                    misstyped: row.get(4)?,
-                    extra: row.get(5)?,
-                    time_in_seconds: row.get(6)?,
-                    correct: row.get(7)?,
-                    incorrect: row.get(8)?,
+                    wpm: row.get(0)?,
+                    accuracy: row.get(1)?,
+                    typed: row.get(2)?,
+                    misstyped: row.get(3)?,
+                    extra: row.get(4)?,
+                    time_in_seconds: row.get(5)?,
+                    correct: row.get(6)?,
+                    incorrect: row.get(7)?,
                 })
             })
             .expect("error: executing GET query")

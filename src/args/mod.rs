@@ -5,6 +5,8 @@ enum CliArg {
     Text(String),
     Limit(usize),
     Path(String),
+    Reset,
+    Help,
 }
 
 #[derive(Debug, PartialEq)]
@@ -12,6 +14,8 @@ enum CliFlag {
     Text,
     Limit,
     Path,
+    Reset,
+    Help,
 }
 
 impl CliFlag {
@@ -24,6 +28,8 @@ impl CliFlag {
             "-t" => Ok(CliFlag::Text),
             "-l" => Ok(CliFlag::Limit),
             "-p" => Ok(CliFlag::Path),
+            "-r" => Ok(CliFlag::Reset),
+            "--help" => Ok(CliFlag::Help),
             _ => Err(format!("error: unexpected argument: {flag}")),
         }
     }
@@ -33,6 +39,8 @@ impl CliFlag {
             CliFlag::Text => "-t",
             CliFlag::Limit => "-l",
             CliFlag::Path => "-p",
+            CliFlag::Reset => "-r",
+            CliFlag::Help => "--help",
         }
     }
 }
@@ -42,6 +50,7 @@ pub struct Options {
     pub text: String,
     pub limit: usize,
     pub path: Option<String>,
+    pub should_reset: bool,
 }
 
 pub const DEFAULT_TEXT: &str = "Lorem ipsum dolor sit amet";
@@ -52,6 +61,7 @@ impl Default for Options {
             text: DEFAULT_TEXT.to_string(),
             limit: 30,
             path: Default::default(),
+            should_reset: false,
         }
     }
 }
@@ -77,6 +87,16 @@ pub fn parse_args() -> Options {
                 std::process::exit(2);
             }
         };
+
+        if matches!(flag, CliFlag::Reset) {
+            parsed.push(CliArg::Reset);
+            continue;
+        }
+
+        if matches!(flag, CliFlag::Help) {
+            print_usage(&program);
+            std::process::exit(0);
+        }
 
         let value = match iter.peek() {
             Some(value) => value,
@@ -105,6 +125,8 @@ pub fn parse_args() -> Options {
             CliArg::Text(text) => options.text = text,
             CliArg::Limit(limit) => options.limit = limit,
             CliArg::Path(path) => options.path = Some(path),
+            CliArg::Reset => options.should_reset = true,
+            CliArg::Help => (),
         }
     }
 
@@ -125,6 +147,8 @@ fn parse_flag(flag: &CliFlag, value: &OsString) -> Result<CliArg, String> {
             Ok(CliArg::Limit(limit))
         }
         CliFlag::Path => Ok(CliArg::Path(value.to_string())),
+        CliFlag::Reset => Ok(CliArg::Reset),
+        CliFlag::Help => Ok(CliArg::Help),
     }
 }
 
@@ -136,30 +160,41 @@ struct ArgDef {
 
 const ARG_DEFS: &[ArgDef] = &[
     ArgDef {
+        flag: CliFlag::Help.to_raw(),
+        value_name: "",
+        description: "Show usage",
+    },
+    ArgDef {
         flag: CliFlag::Text.to_raw(),
-        value_name: "TEXT",
+        value_name: "<TEXT>",
         description: "Raw text to practice with",
     },
     ArgDef {
         flag: CliFlag::Limit.to_raw(),
-        value_name: "LIMIT",
+        value_name: "<LIMIT>",
         description: "Word limit (default: 30)",
     },
     ArgDef {
         flag: CliFlag::Path.to_raw(),
-        value_name: "PATH",
+        value_name: "<PATH>",
         description: "File path to read from",
+    },
+    ArgDef {
+        flag: CliFlag::Reset.to_raw(),
+        value_name: "",
+        description: "Erase all the historic tests data",
     },
 ];
 
 fn print_usage(program: &str) {
+    eprintln!("A typing test CLI program\n");
     eprintln!("Usage: {program} [OPTIONS]\n");
     eprintln!("Options:");
     for arg in ARG_DEFS {
         eprintln!(
-            "  {} <{:<10} {}",
+            "  {} {:<10} {}",
             arg.flag,
-            format!("{}>", arg.value_name),
+            format!("{}", arg.value_name),
             arg.description
         );
     }
